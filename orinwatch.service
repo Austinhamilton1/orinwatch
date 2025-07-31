@@ -1,0 +1,12 @@
+[Unit]
+Description=OrinWatch System Monitoring Daemon
+Documentation=https://github.com/Austinhamilton1/orinwatch
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/orinwatch
+Restart=on-failure
+
+[Install]
+WantedBy=mutli-user.target
