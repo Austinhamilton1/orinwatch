@@ -28,9 +28,10 @@ namespace orin_watch {
 		static double get_temperature(const std::string& zone);
 
 		/* Constructor/Destructor */
-		Watcher();
+		Watcher(std::shared_ptr<SharedBuffer>& buffer);
 		~Watcher();
 
+		/* Read/write from the buffer */
 		std::optional<OrinWatchTelemetry> poll() const;
 		void write_status(const OrinWatchTelemetry& status);
 	};

@@ -107,10 +107,39 @@ double orin_watch::Watcher::get_temperature(const std::string& zone) {
 	return NAN;
 }
 
-orin_watch::Watcher::Watcher() {
-	
+/*
+ * Instantiate a Watcher with the SharedBuffer passed in.
+ */
+orin_watch::Watcher::Watcher(std::shared_ptr<SharedBuffer>& buffer) : buffer(buffer) {}
+
+/*
+ * Deinitialize a Watcher (empty deinit).
+ */
+orin_watch::Watcher::~Watcher() {}
+
+/*
+ * Poll the buffer. If the buffer has data in it,
+ * read the data, otherwise return nothing.
+ *
+ * Returns:
+ *    std::optional<orin_watch::OrinWatchTelemetry> - Data if the buffer has data, otherwise null.
+ */
+std::optional<orin_watch::OrinWatchTelemetry> orin_watch::Watcher::poll() const {
+	orin_watch::OrinWatchTelemetry current;
+	if(buffer->poll()) {
+		buffer->read(&current, sizeof(current), 0);
+		return std::optional<orin_watch::OrinWatchTelemetry>(current);
+	}
+
+	return std::nullopt;
 }
 
-orin_watch::Watcher::~Watcher() {
-
+/*
+ * Write to the buffer.
+ *
+ * Arguments:
+ *    const orin_watch::OrinWatchTelemetry& status - The status to write.
+ */
+void orin_watch::Watcher::write_status(const orin_watch::OrinWatchTelemetry& status) {
+	buffer->write(&status, sizeof(status), 0);
 }

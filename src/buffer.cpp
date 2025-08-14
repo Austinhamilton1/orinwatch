@@ -15,11 +15,11 @@
  *
  * Arguments:
  *    const std::string& name - The virtual file name (e.g., /orin_watch).
- *    std::size_t size - The size of the buffer.
+ *    std::size_t size - The size of the buffer (the first bit will be used for polling).
  *    bool create - Is this buffer being created for the first time (true) or simply accessed?
  */
 orin_watch::SharedBuffer::SharedBuffer(const std::string& name, std::size_t size, bool create) 
-	: shm_fd(-1), mapped_mem(nullptr), mem_size(size), owner(create), shm_name(name) {
+	: shm_fd(-1), mapped_mem(nullptr), mem_size(size + 1), owner(create), shm_name(name) {
 	
 	/* Open the shared memory */
 	int flags = create ? (O_CREAT | O_RDWR) : O_RDWR;
@@ -77,7 +77,8 @@ std::size_t orin_watch::SharedBuffer::size() const {
  */
 void orin_watch::SharedBuffer::read(void *buffer, std::size_t size, std::size_t offset) {
 	std::lock_guard<std::mutex> guard(mMutex);
-	memcpy(buffer, ((char *)mapped_mem) + offset, size);
+	memcpy(buffer, reinterpret_cast<char *>(mapped_mem) + offset + 1, size);
+	reinterpret_cast<char *>(mapped_mem)[0] &= 0; // First bit is used only for polling
 }
 
 /*
@@ -88,7 +89,19 @@ void orin_watch::SharedBuffer::read(void *buffer, std::size_t size, std::size_t 
  *    std::size_t size - Write this many bytes.
  *    std::size_t offset - Write starting at this offset.
  */
-void orin_watch::SharedBuffer::write(void *data, std::size_t size, std::size_t offset) {
+void orin_watch::SharedBuffer::write(const void *data, std::size_t size, std::size_t offset) {
 	std::lock_guard<std::mutex> guard(mMutex);
-	memcpy(((char *)mapped_mem) + offset, data, size);
+	memcpy(reinterpret_cast<char *>(mapped_mem) + offset + 1, data, size);
+	reinterpret_cast<char *>(mapped_mem)[0] |= 1; // First bit is used only for polling
+}
+
+/*
+ * Determine if the buffer has new data.
+ *
+ * Returns:
+ *    bool - True if the buffer has new data, false otherwise.
+ */
+bool orin_watch::SharedBuffer::poll() {
+	std::lock_guard<std::mutex> guard(mMutex);
+	return reinterpret_cast<char *>(mapped_mem)[0] & 1;
 }

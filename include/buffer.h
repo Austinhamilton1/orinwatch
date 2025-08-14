@@ -22,6 +22,9 @@ namespace orin_watch {
 
 		/* Read/write to and from buffer */
 		void read(void *buffer, std::size_t size, std::size_t offset);
-		void write(void *data, std::size_t size, std::size_t offset);
+		void write(const void *data, std::size_t size, std::size_t offset);
+
+		/* Determine if the buffer has new data */
+		bool poll();
 	};
 };
